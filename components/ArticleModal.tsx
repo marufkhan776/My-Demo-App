@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Article, CommunityUser } from '../types';
 import { CommentSection } from './comments/CommentSection';
+import { ShareToFeedModal } from './community/ShareToFeedModal';
 
 interface ArticleModalProps {
     article: Article;
@@ -24,6 +25,7 @@ const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; c
 
 export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles, onClose, onSelectArticle, currentUser, onLoginClick }) => {
     const [copied, setCopied] = useState(false);
+    const [isShareToFeedModalOpen, setIsShareToFeedModalOpen] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -101,26 +103,40 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
                     <div className="w-full h-96 rounded-lg overflow-hidden mb-6">
                          <img src={article.imageUrl} alt={article.headline} className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-500 dark:text-gray-400 mb-6">
-                        <div className="flex items-center space-x-4">
+                    <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4 text-sm text-gray-500 dark:text-gray-400 mb-6">
+                         <div className="flex items-center space-x-4">
                             <span className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 px-3 py-1 rounded-full font-semibold">{article.category}</span>
                             <span>{article.publishedDate}</span>
                         </div>
-                         <div className="flex items-center space-x-4">
+                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <span className="font-semibold text-gray-600 dark:text-gray-300">শেয়ার করুন:</span>
-                            <SocialShareButton onClick={() => handleShare('facebook')} aria-label="Share on Facebook">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
-                            </SocialShareButton>
-                             <SocialShareButton onClick={() => handleShare('twitter')} aria-label="Share on Twitter">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                            </SocialShareButton>
-                            <SocialShareButton onClick={() => handleShare('linkedin')} aria-label="Share on LinkedIn">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" /></svg>
-                            </SocialShareButton>
-                            <SocialShareButton onClick={handleCopyLink} aria-label="Copy link">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                            </SocialShareButton>
-                            {copied && <span className="text-sm text-green-500 animate-fade-out">লিঙ্ক কপি হয়েছে!</span>}
+                            <div className="flex items-center space-x-4">
+                                <SocialShareButton onClick={() => handleShare('facebook')} aria-label="Share on Facebook">
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+                                </SocialShareButton>
+                                 <SocialShareButton onClick={() => handleShare('twitter')} aria-label="Share on Twitter">
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                                </SocialShareButton>
+                                <SocialShareButton onClick={() => handleShare('linkedin')} aria-label="Share on LinkedIn">
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" /></svg>
+                                </SocialShareButton>
+                                <SocialShareButton onClick={handleCopyLink} aria-label="Copy link">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                </SocialShareButton>
+                                {copied && <span className="text-sm text-green-500 animate-fade-out">লিঙ্ক কপি হয়েছে!</span>}
+                            </div>
+                            {currentUser && (
+                                <div className="border-l border-gray-300 dark:border-gray-600 pl-4">
+                                    <button
+                                        onClick={() => setIsShareToFeedModalOpen(true)}
+                                        aria-label="Share to Community Feed"
+                                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200 font-semibold"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" /></svg>
+                                        <span>ফিডে শেয়ার করুন</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="prose prose-lg max-w-none text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
@@ -172,6 +188,16 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
                     </button>
                 </div>
             </div>
+            {isShareToFeedModalOpen && currentUser && (
+                <ShareToFeedModal
+                    article={article}
+                    currentUser={currentUser}
+                    onClose={() => setIsShareToFeedModalOpen(false)}
+                    onPostCreated={() => {
+                        setIsShareToFeedModalOpen(false);
+                    }}
+                />
+            )}
              <style>{`
                 @keyframes fade-in-up {
                     from { opacity: 0; transform: translateY(20px); }

@@ -235,16 +235,16 @@ const App: React.FC = () => {
         
         if (route.startsWith('#/community/group/')) {
             const groupId = route.split('/')[3];
-            return <GroupDetailView groupId={groupId} currentUser={currentUser} onNavigate={navigateTo} />;
+            return <GroupDetailView groupId={groupId} currentUser={currentUser} onNavigate={navigateTo} onSelectArticle={handleSelectArticle} />;
         }
 
         if (route.startsWith('#/profile/')) {
             const userId = route.split('/')[2];
-            return <ProfileView userId={userId} currentUser={currentUser} onNavigate={navigateTo} onDataChange={refreshUnreadCounts} />;
+            return <ProfileView userId={userId} currentUser={currentUser} onNavigate={navigateTo} onDataChange={refreshUnreadCounts} onSelectArticle={handleSelectArticle} />;
         }
         
         if (route.startsWith('#/feed')) {
-            return <FeedView currentUser={currentUser} onLoginClick={() => setIsAuthModalOpen(true)} onNavigate={navigateTo} />;
+            return <FeedView currentUser={currentUser} onLoginClick={() => setIsAuthModalOpen(true)} onNavigate={navigateTo} onSelectArticle={handleSelectArticle} />;
         }
 
         if (route.startsWith('#/community')) {

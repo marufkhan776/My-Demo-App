@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { communityService } from '../../services/communityService';
-import { Group, Post, CommunityUser } from '../../types';
+import { Group, Post, CommunityUser, Article } from '../../types';
 import { PostCard } from './PostCard';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { CreatePostModal } from './CreatePostModal';
@@ -10,9 +10,10 @@ interface FeedViewProps {
     currentUser: CommunityUser | null;
     onLoginClick: () => void;
     onNavigate: (path: string) => void;
+    onSelectArticle: (article: Article) => void;
 }
 
-export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, onNavigate }) => {
+export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, onNavigate, onSelectArticle }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [userGroups, setUserGroups] = useState<Group[]>([]);
     const [friends, setFriends] = useState<CommunityUser[]>([]);
@@ -118,6 +119,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, o
                                     currentUser={currentUser}
                                     onDataChange={refreshFeed}
                                     onNavigate={onNavigate}
+                                    onSelectArticle={onSelectArticle}
                                 />
                             ))}
                         </div>

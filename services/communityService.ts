@@ -99,7 +99,9 @@ const initDefaultData = () => {
             if (posts.length === 0) {
                 // Create default posts
                 const defaultPosts: Post[] = [
-                    { id: 'post_1', groupId: 'group_1', authorId: 'user_1', content: 'এই নতুন কমিউনিটি ফিচারে আপনাদের সবাইকে স্বাগতম! আশা করি আপনাদের ভালো লাগবে।', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), comments: [], likeUserIds: ['user_2', 'user_3'] },
+                    { id: 'post_1', groupId: 'group_1', authorId: 'user_1', content: 'এই নতুন কমিউনিটি ফিচারে আপনাদের সবাইকে স্বাগতম! আশা করি আপনাদের ভালো লাগবে।', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), comments: [
+                        { id: `comment_${Date.now() - 1000 * 60 * 2}`, postId: 'post_1', authorId: 'user_2', content: 'দারুণ উদ্যোগ! কমিউনিটি আরো সক্রিয় হবে আশা করি।', timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString() }
+                    ], likeUserIds: ['user_2', 'user_3'] },
                     { id: 'post_2', groupId: 'group_2', authorId: 'user_3', content: 'আজকের খেলা কে দেখেছে? অসাধারণ একটি ম্যাচ ছিল!', timestamp: new Date().toISOString(), comments: [], likeUserIds: [] }
                 ];
                 saveToStorage(POSTS_KEY, defaultPosts);
@@ -453,6 +455,27 @@ export const communityService = {
                     entityId: post.id,
                 });
             }
+        }
+    },
+
+    updateCommentOnPost(postId: string, commentId: string, newContent: string): void {
+        const posts = getFromStorage<Post[]>(POSTS_KEY, []);
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+            const comment = post.comments.find(c => c.id === commentId);
+            if (comment) {
+                comment.content = newContent;
+                saveToStorage(POSTS_KEY, posts);
+            }
+        }
+    },
+
+    deleteCommentOnPost(postId: string, commentId: string): void {
+        const posts = getFromStorage<Post[]>(POSTS_KEY, []);
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+            post.comments = post.comments.filter(c => c.id !== commentId);
+            saveToStorage(POSTS_KEY, posts);
         }
     },
     

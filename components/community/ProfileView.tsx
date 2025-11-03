@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { communityService } from '../../services/communityService';
-import { Post, CommunityUser, Group } from '../../types';
+import { Post, CommunityUser, Group, Article } from '../../types';
 import { PostCard } from './PostCard';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { EditProfileModal } from './EditProfileModal';
@@ -11,6 +11,7 @@ interface ProfileViewProps {
     currentUser: CommunityUser | null;
     onNavigate: (path: string) => void;
     onDataChange: () => void; // To refresh friend request count in header
+    onSelectArticle: (article: Article) => void;
 }
 
 const StatItem: React.FC<{ value: number; label: string }> = ({ value, label }) => (
@@ -20,7 +21,7 @@ const StatItem: React.FC<{ value: number; label: string }> = ({ value, label }) 
     </div>
 );
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ userId, currentUser, onNavigate, onDataChange }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ userId, currentUser, onNavigate, onDataChange, onSelectArticle }) => {
     const [profileUser, setProfileUser] = useState<CommunityUser | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [groups, setGroups] = useState<Group[]>([]);
@@ -207,6 +208,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, currentUser, o
                                                     currentUser={currentUser}
                                                     onDataChange={refreshData}
                                                     onNavigate={onNavigate}
+                                                    onSelectArticle={onSelectArticle}
                                                 />
                                             ))
                                         ) : (

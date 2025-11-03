@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { communityService } from '../../services/communityService';
-import { Group, Post, CommunityUser } from '../../types';
+import { Group, Post, CommunityUser, Article } from '../../types';
 import { PostCard } from './PostCard';
 import { CreatePostModal } from './CreatePostModal';
 import { ChatView } from './ChatView';
@@ -9,9 +9,10 @@ interface GroupDetailViewProps {
     groupId: string;
     currentUser: CommunityUser | null;
     onNavigate: (path: string) => void;
+    onSelectArticle: (article: Article) => void;
 }
 
-export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, currentUser, onNavigate }) => {
+export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, currentUser, onNavigate, onSelectArticle }) => {
     const [group, setGroup] = useState<Group | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [members, setMembers] = useState<CommunityUser[]>([]);
@@ -119,6 +120,7 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, curre
                                 currentUser={currentUser}
                                 onDataChange={refreshData}
                                 onNavigate={onNavigate}
+                                onSelectArticle={onSelectArticle}
                             />
                         ))}
                     </div>

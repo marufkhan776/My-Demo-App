@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Fix: Import 'Group' type to resolve 'Cannot find name 'Group'' error.
-import { Post, CommunityUser, Comment, Group } from '../../types';
+import { Post, CommunityUser, Comment, Group, Article } from '../../types';
 import { communityService } from '../../services/communityService';
+import { contentService } from '../../services/contentService';
 import { SharePostModal } from './SharePostModal';
 
 interface PostCardProps {
@@ -9,6 +9,7 @@ interface PostCardProps {
     currentUser: CommunityUser | null;
     onDataChange: () => void;
     onNavigate: (path: string) => void;
+    onSelectArticle: (article: Article) => void;
 }
 
 const CommentForm: React.FC<{
@@ -53,30 +54,105 @@ const CommentForm: React.FC<{
     );
 };
 
-const CommentView: React.FC<{ comment: Comment, onNavigate: (path: string) => void }> = ({ comment, onNavigate }) => {
+const CommentView: React.FC<{
+    comment: Comment;
+    onNavigate: (path: string) => void;
+    currentUser: CommunityUser | null;
+    postAuthorId: string;
+    onDataChange: () => void;
+}> = ({ comment, onNavigate, currentUser, postAuthorId, onDataChange }) => {
     const [author, setAuthor] = useState<CommunityUser | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedContent, setEditedContent] = useState(comment.content);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const user = communityService.getUserById(comment.authorId);
         if (user) setAuthor(user);
     }, [comment.authorId]);
-    
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleSaveEdit = () => {
+        if (!editedContent.trim()) return;
+        communityService.updateCommentOnPost(comment.postId, comment.id, editedContent.trim());
+        setIsEditing(false);
+        onDataChange();
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setEditedContent(comment.content);
+    }
+
+    const handleDelete = () => {
+        setIsMenuOpen(false);
+        if (window.confirm('আপনি কি নিশ্চিত যে এই মন্তব্যটি মুছে ফেলতে চান?')) {
+            communityService.deleteCommentOnPost(comment.postId, comment.id);
+            onDataChange();
+        }
+    };
+
     if (!author) return null;
 
+    const canEdit = currentUser?.id === author.id;
+    const canDelete = currentUser?.id === author.id || currentUser?.id === postAuthorId;
+    
     return (
         <div className="flex items-start space-x-3">
-             <img src={author.profilePicture} alt={author.username} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-             <div className="flex-grow bg-gray-100 dark:bg-gray-700/80 rounded-xl px-4 py-2">
-                <div className="flex items-baseline space-x-2">
-                    <button onClick={() => onNavigate(`#/profile/${author.id}`)} className="font-bold text-sm text-gray-800 dark:text-gray-100 hover:underline">{author.username}</button>
+            <img src={author.profilePicture} alt={author.username} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+            <div className="flex-grow bg-gray-100 dark:bg-gray-700/80 rounded-xl px-4 py-2">
+                <div className="flex justify-between items-start">
+                    <div className="flex items-baseline space-x-2">
+                        <button onClick={() => onNavigate(`#/profile/${author.id}`)} className="font-bold text-sm text-gray-800 dark:text-gray-100 hover:underline">{author.username}</button>
+                    </div>
+                    {(canEdit || canDelete) && !isEditing && (
+                        <div className="relative flex-shrink-0" ref={menuRef}>
+                            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1 -mr-2 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="Comment options">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                            </button>
+                            {isMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-900 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10 py-1">
+                                    {canEdit && <button onClick={() => { setIsEditing(true); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">এডিট</button>}
+                                    {canDelete && <button onClick={handleDelete} className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">ডিলিট</button>}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-                 <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{comment.content}</p>
-             </div>
+                {isEditing ? (
+                    <div>
+                        <textarea
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            className="w-full p-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
+                            rows={2}
+                            autoFocus
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                             <button onClick={handleCancelEdit} className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 font-semibold py-1 px-3 rounded-md text-xs">বাতিল</button>
+                            <button onClick={handleSaveEdit} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md text-xs">সেভ</button>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{comment.content}</p>
+                )}
+            </div>
         </div>
-    )
+    );
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataChange, onNavigate }) => {
+
+export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataChange, onNavigate, onSelectArticle }) => {
     const [author, setAuthor] = useState<CommunityUser | null>(null);
     const [group, setGroup] = useState<Group | null>(null);
     const [showComments, setShowComments] = useState(false);
@@ -86,6 +162,29 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
     const menuRef = useRef<HTMLDivElement>(null);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+    // --- Shared Post Logic ---
+    const separator = '\n---\n';
+    const isSharedPost = post.content.includes(separator);
+    let opinion = '';
+    let sharedArticle: { id: string; headline: string; summary: string } | null = null;
+
+    if (isSharedPost) {
+        const parts = post.content.split(separator);
+        opinion = parts[0].trim();
+        if (parts.length > 1) {
+            const sharedArticleText = parts[1].trim();
+            // The first line is ID, second is headline, rest is summary
+            const [id, headline, ...summaryLines] = sharedArticleText.split('\n');
+            if (id && headline) {
+                sharedArticle = {
+                    id: id.trim(),
+                    headline: headline.replace(/\*\*/g, '').trim(),
+                    summary: summaryLines.join('\n').replace(/\*/g, '').trim()
+                };
+            }
+        }
+    }
+    // --- End Shared Post Logic ---
 
     useEffect(() => {
         setAuthor(communityService.getUserById(post.authorId) || null);
@@ -106,6 +205,17 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
         if (!currentUser) return;
         communityService.toggleLikePost(post.id, currentUser.id);
         onDataChange();
+    };
+
+    const handleSharedArticleClick = () => {
+        if (sharedArticle) {
+            const article = contentService.getArticle(sharedArticle.id);
+            if (article) {
+                onSelectArticle(article);
+            } else {
+                alert('দুঃখিত, এই খবরটি আর পাওয়া যাচ্ছে না।');
+            }
+        }
     };
 
     const handleEdit = () => {
@@ -139,7 +249,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
         return null; // Don't render post if author not found
     }
     
-    // Time formatting logic
     const postDate = new Date(post.timestamp);
     const now = new Date();
     const diffSeconds = Math.round((now.getTime() - postDate.getTime()) / 1000);
@@ -162,7 +271,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
 
     return (
         <>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow relative">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
             <div className="p-4">
                  <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3 mb-4">
@@ -199,32 +308,64 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                             )}
                         </div>
                     )}
-                 </div>
-                {isEditing ? (
-                    <div>
-                        <textarea
-                            value={editedContent}
-                            onChange={(e) => setEditedContent(e.target.value)}
-                            className="w-full p-2 text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                            rows={4}
-                            autoFocus
-                        />
-                        <div className="flex justify-end gap-2 mt-2">
-                            <button onClick={handleCancelEdit} className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 font-semibold py-1 px-4 rounded-md text-sm">বাতিল</button>
-                            <button onClick={handleSaveEdit} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-md text-sm">সেভ</button>
-                        </div>
-                    </div>
-                ) : (
-                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-                        {post.content}
-                    </p>
-                )}
-            </div>
-             {post.imageUrl && !isEditing && (
-                <div className="mt-2 bg-gray-100 dark:bg-gray-900">
-                    <img src={post.imageUrl} alt="" className="w-full max-h-[500px] object-contain" />
                 </div>
-            )}
+                
+                <div className="px-4 pb-2">
+                    {isEditing ? (
+                        <div>
+                            <textarea
+                                value={editedContent}
+                                onChange={(e) => setEditedContent(e.target.value)}
+                                className="w-full p-2 text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                rows={4}
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                                <button onClick={handleCancelEdit} className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 font-semibold py-1 px-4 rounded-md text-sm">বাতিল</button>
+                                <button onClick={handleSaveEdit} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-md text-sm">সেভ</button>
+                            </div>
+                        </div>
+                    ) : isSharedPost ? (
+                        <>
+                            {opinion && (
+                                <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-3">
+                                    {opinion}
+                                </p>
+                            )}
+                            {sharedArticle && (
+                                <div
+                                    onClick={handleSharedArticleClick}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSharedArticleClick(); }}
+                                    className="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden block group hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-red-500"
+                                >
+                                    {post.imageUrl && (
+                                        <div className="w-full h-40 bg-gray-200 dark:bg-gray-900">
+                                            <img src={post.imageUrl} alt={sharedArticle.headline} className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    <div className="p-4">
+                                        <h4 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{sharedArticle.headline}</h4>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{sharedArticle.summary}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                {post.content}
+                            </p>
+                            {post.imageUrl && (
+                                <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                                    <img src={post.imageUrl} alt="Post image" className="w-full max-h-[500px] object-cover" />
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
             
             {!isEditing && (
                 <>
@@ -268,7 +409,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                 {showComments && (
                     <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                          <div className="space-y-4">
-                            {post.comments.map(comment => <CommentView key={comment.id} comment={comment} onNavigate={onNavigate} />)}
+                            {post.comments.map(comment => (
+                                <CommentView
+                                    key={comment.id}
+                                    comment={comment}
+                                    onNavigate={onNavigate}
+                                    currentUser={currentUser}
+                                    postAuthorId={post.authorId}
+                                    onDataChange={onDataChange}
+                                />
+                            ))}
                          </div>
                          {currentUser && (
                              <CommentForm postId={post.id} currentUser={currentUser} onDataChange={onDataChange} />
