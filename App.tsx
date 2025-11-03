@@ -32,7 +32,7 @@ const App: React.FC = () => {
     const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(authService.isLoggedIn());
     
     // App State
-    const [route, setRoute] = useState('#/');
+    const [route, setRoute] = useState(window.location.hash || '#/');
     const [settings, setSettings] = useState<SiteSettings>(contentService.getSettings());
     const [articles, setArticles] = useState<Article[]>([]);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -40,9 +40,18 @@ const App: React.FC = () => {
 
     // Navigation and View State
     const navigateTo = (path: string) => {
-        setRoute(path);
+        // window.location.hash = path; // This line causes a security error in some environments.
+        setRoute(path); // We manage routing via state instead.
         window.scrollTo(0, 0);
     };
+    
+    useEffect(() => {
+        const handleHashChange = () => {
+            setRoute(window.location.hash || '#/');
+        };
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
 
     // Public Site State
     const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -192,7 +201,7 @@ const App: React.FC = () => {
 
     useEffect(() => {
         refreshUnreadCounts();
-    }, [currentUser, refreshUnreadCounts]);
+    }, [currentUser, route, refreshUnreadCounts]);
 
     const handleToggleNotificationPanel = () => {
         setIsFriendRequestPanelOpen(false); // Close other panel
@@ -266,130 +275,112 @@ const App: React.FC = () => {
         const remainingStories = articlesToDisplay.slice(1);
 
         return (
-            <>
-                <main className="flex-grow container mx-auto px-4 py-8">
-                    {searchQuery && (
-                        <div className="mb-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
-                            <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">'{searchQuery}' এর জন্য ফলাফল</h2>
-                            <button onClick={() => setSearchQuery('')} className="mt-2 text-red-600 hover:underline font-semibold">অনুসন্ধান মুছুন</button>
+            <main className="flex-grow container mx-auto px-4 py-8">
+                {searchQuery && (
+                    <div className="mb-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">'{searchQuery}' এর জন্য ফলাফল</h2>
+                        <button onClick={() => setSearchQuery('')} className="mt-2 text-red-600 hover:underline font-semibold">অনুসন্ধান মুছুন</button>
+                    </div>
+                )}
+                {error && <ErrorDisplay message={error} onRetry={handleLoadMore} />}
+                {articlesToDisplay.length > 0 ? (
+                    <>
+                        {topStory && <HeroSection article={topStory} onReadMore={() => handleSelectArticle(topStory)} />}
+                        <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                            {remainingStories.map((article) => (
+                                <NewsCard key={article.id} article={article} onSelectArticle={() => handleSelectArticle(article)} />
+                            ))}
                         </div>
-                    )}
-                    {error && <ErrorDisplay message={error} onRetry={handleLoadMore} />}
-                    {articlesToDisplay.length > 0 ? (
-                        <>
-                            {topStory && <HeroSection article={topStory} onReadMore={() => handleSelectArticle(topStory)} />}
-                            <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                                {remainingStories.map((article) => (
-                                    <NewsCard key={article.id} article={article} onSelectArticle={() => handleSelectArticle(article)} />
-                                ))}
+                        {hasMore && !searchQuery && (
+                            <div className="mt-12 text-center">
+                                <button onClick={handleLoadMore} disabled={isLoadingMore} className="bg-red-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-red-700 transition duration-300 disabled:bg-red-400 disabled:cursor-not-allowed">
+                                    {isLoadingMore ? 'লোড হচ্ছে...' : 'আরও খবর লোড করুন'}
+                                </button>
                             </div>
-                            {hasMore && !searchQuery && (
-                                <div className="mt-12 text-center">
-                                    <button onClick={handleLoadMore} disabled={isLoadingMore} className="bg-red-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-red-700 transition duration-300 disabled:bg-red-400 disabled:cursor-not-allowed">
-                                        {isLoadingMore ? 'লোড হচ্ছে...' : 'আরও খবর লোড করুন'}
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                            <h2 className="text-2xl font-semibold">কোনো খবর পাওয়া যায়নি।</h2>
-                            <p className="mt-2">{searchQuery ? 'আপনার অনুসন্ধানের সাথে মেলে এমন কোনো ফলাফল নেই।' : 'অন্য একটি বিভাগ চেষ্টা করুন।'}</p>
-                        </div>
-                    )}
-                </main>
-                {selectedArticle && <ArticleModal 
-                    article={selectedArticle} 
-                    allArticles={articles} 
-                    onClose={handleCloseArticleModal} 
-                    onSelectArticle={handleSelectArticle} 
-                    currentUser={currentUser}
-                    onLoginClick={() => setIsAuthModalOpen(true)}
-                />}
-            </>
+                        )}
+                    </>
+                ) : (
+                    <div className="text-center py-16 text-gray-500 dark:text-gray-400">
+                        <h2 className="text-2xl font-semibold">কোনো খবর পাওয়া যায়নি।</h2>
+                        <p className="mt-2">{searchQuery ? 'আপনার অনুসন্ধানের সাথে মেলে এমন কোনো ফলাফল নেই।' : 'অন্য একটি বিভাগ চেষ্টা করুন।'}</p>
+                    </div>
+                )}
+            </main>
         );
     };
 
-    // Admin panel doesn't have the main header/footer
-    if (route.startsWith('#/admin') && isAdminLoggedIn) {
+    // Hide header/footer for admin login page
+    if (route.startsWith('#/admin') && !isAdminLoggedIn) {
         return renderView();
     }
-     if (route.startsWith('#/admin') && !isAdminLoggedIn) {
-        return <Login onLogin={handleAdminLogin} />;
-    }
-
+    
     return (
-        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col text-gray-800 dark:text-gray-200 transition-colors duration-300">
-            <div className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-40 transition-colors duration-300">
-                 <Header 
-                    siteName={settings.siteName}
-                    theme={theme} 
-                    toggleTheme={toggleTheme}
-                    isMobileMenuOpen={isMobileMenuOpen}
-                    onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    onSearch={(query) => {
-                        setSearchQuery(query);
-                        navigateTo('#/');
-                    }}
-                    onGoHome={handleGoHome}
-                    currentUser={currentUser}
-                    onLoginClick={() => setIsAuthModalOpen(true)}
-                    onLogout={handleUserLogout}
-                    onNavigate={navigateTo}
-                    unreadNotificationCount={unreadNotificationCount}
-                    onToggleNotificationPanel={handleToggleNotificationPanel}
-                    unreadFriendRequestCount={unreadFriendRequestCount}
-                    onToggleFriendRequestPanel={handleToggleFriendRequestPanel}
-                />
-                 <NavigationBar
-                    categories={CATEGORIES_STRUCTURED}
-                    activeCategory={activeCategory}
+        <div className={`flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200`}>
+            {!route.startsWith('#/admin') && (
+                <>
+                    <Header
+                        siteName={settings.siteName}
+                        theme={theme}
+                        toggleTheme={toggleTheme}
+                        isMobileMenuOpen={isMobileMenuOpen}
+                        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        onSearch={(q) => { setSearchQuery(q); navigateTo('#/'); }}
+                        onGoHome={handleGoHome}
+                        currentUser={currentUser}
+                        onLoginClick={() => setIsAuthModalOpen(true)}
+                        onLogout={handleUserLogout}
+                        onNavigate={navigateTo}
+                        unreadNotificationCount={unreadNotificationCount}
+                        onToggleNotificationPanel={handleToggleNotificationPanel}
+                        unreadFriendRequestCount={unreadFriendRequestCount}
+                        onToggleFriendRequestPanel={handleToggleFriendRequestPanel}
+                    />
+                    <NavigationBar
+                        categories={CATEGORIES_STRUCTURED}
+                        activeCategory={activeCategory}
+                        onSelectCategory={handleSelectCategory}
+                        isMobileMenuOpen={isMobileMenuOpen}
+                        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
+                        onSearch={(q) => { setSearchQuery(q); navigateTo('#/'); }}
+                        onNavigate={navigateTo}
+                        theme={theme}
+                        toggleTheme={toggleTheme}
+                        socialLinks={settings.socialLinks}
+                    />
+                </>
+            )}
+
+            <div className="flex-grow relative">
+                <div ref={panelsRef} className="absolute top-0 right-0 z-40 p-4 w-full max-w-sm sm:w-96">
+                    {isNotificationPanelOpen && currentUser && (
+                        <NotificationPanel currentUser={currentUser} onClose={closeAllPanels} onNavigate={navigateTo} onDataChange={refreshUnreadCounts} />
+                    )}
+                    {isFriendRequestPanelOpen && currentUser && (
+                        <FriendRequestPanel currentUser={currentUser} onClose={closeAllPanels} onNavigate={navigateTo} onDataChange={refreshUnreadCounts} />
+                    )}
+                </div>
+                {renderView()}
+            </div>
+            
+            {!route.startsWith('#/admin') && (
+                 <Footer
                     onSelectCategory={handleSelectCategory}
-                    isMobileMenuOpen={isMobileMenuOpen}
-                    onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
-                    onSearch={(q) => { setSearchQuery(q); navigateTo('#/'); }}
-                    onNavigate={navigateTo}
-                    theme={theme}
-                    toggleTheme={toggleTheme}
+                    onOpenPolicy={handleOpenPolicy}
                     socialLinks={settings.socialLinks}
                 />
-            </div>
+            )}
 
-            <div ref={panelsRef} className="relative">
-                {isNotificationPanelOpen && currentUser && (
-                    <NotificationPanel
-                        currentUser={currentUser}
-                        onClose={handleToggleNotificationPanel}
-                        onNavigate={(path) => {
-                            navigateTo(path);
-                            closeAllPanels();
-                        }}
-                        onDataChange={refreshUnreadCounts}
-                    />
-                )}
-                {isFriendRequestPanelOpen && currentUser && (
-                    <FriendRequestPanel
-                        currentUser={currentUser}
-                        onClose={handleToggleFriendRequestPanel}
-                        onNavigate={(path) => {
-                            navigateTo(path);
-                            closeAllPanels();
-                        }}
-                        onDataChange={refreshUnreadCounts}
-                    />
-                )}
-            </div>
-            
-            {renderView()}
-
-            {isAuthModalOpen && <UserAuthModal onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleUserLogin}/>}
+            {/* Global Modals */}
+            {selectedArticle && <ArticleModal 
+                article={selectedArticle} 
+                allArticles={articles} 
+                onClose={handleCloseArticleModal} 
+                onSelectArticle={handleSelectArticle}
+                currentUser={currentUser}
+                onLoginClick={() => setIsAuthModalOpen(true)}
+            />}
             {selectedPolicy && <PolicyModal policy={POLICY_CONTENT[selectedPolicy]} onClose={handleClosePolicy} />}
-            
-            <Footer 
-                socialLinks={settings.socialLinks}
-                onSelectCategory={handleSelectCategory} 
-                onOpenPolicy={handleOpenPolicy} 
-            />
+            {isAuthModalOpen && <UserAuthModal onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleUserLogin} />}
         </div>
     );
 };

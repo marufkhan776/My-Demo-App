@@ -161,35 +161,20 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-
-    // --- Shared Post Logic ---
-    const separator = '\n---\n';
-    const isSharedPost = post.content.includes(separator);
-    let opinion = '';
-    let sharedArticle: { id: string; headline: string; summary: string } | null = null;
-
-    if (isSharedPost) {
-        const parts = post.content.split(separator);
-        opinion = parts[0].trim();
-        if (parts.length > 1) {
-            const sharedArticleText = parts[1].trim();
-            // The first line is ID, second is headline, rest is summary
-            const [id, headline, ...summaryLines] = sharedArticleText.split('\n');
-            if (id && headline) {
-                sharedArticle = {
-                    id: id.trim(),
-                    headline: headline.replace(/\*\*/g, '').trim(),
-                    summary: summaryLines.join('\n').replace(/\*/g, '').trim()
-                };
-            }
-        }
-    }
-    // --- End Shared Post Logic ---
+    const [sharedArticle, setSharedArticle] = useState<Article | null>(null);
 
     useEffect(() => {
         setAuthor(communityService.getUserById(post.authorId) || null);
         setGroup(communityService.getGroupById(post.groupId) || null);
-    }, [post.authorId, post.groupId]);
+        
+        // New robust logic for shared articles
+        if (post.sharedArticleId) {
+            const article = contentService.getArticle(post.sharedArticleId);
+            setSharedArticle(article || null);
+        } else {
+            setSharedArticle(null);
+        }
+    }, [post]);
     
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -209,12 +194,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
 
     const handleSharedArticleClick = () => {
         if (sharedArticle) {
-            const article = contentService.getArticle(sharedArticle.id);
-            if (article) {
-                onSelectArticle(article);
-            } else {
-                alert('দুঃখিত, এই খবরটি আর পাওয়া যাচ্ছে না।');
-            }
+            onSelectArticle(sharedArticle);
         }
     };
 
@@ -229,7 +209,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
     };
 
     const handleSaveEdit = () => {
-        if (!editedContent.trim()) return;
+        if (!editedContent.trim() && !post.sharedArticleId && !post.imageUrl) return; // Prevent saving empty posts unless it's a shared article or image post
         communityService.updatePost(post.id, editedContent.trim());
         setIsEditing(false);
         onDataChange();
@@ -325,14 +305,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                                 <button onClick={handleSaveEdit} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-md text-sm">সেভ</button>
                             </div>
                         </div>
-                    ) : isSharedPost ? (
+                    ) : (
                         <>
-                            {opinion && (
-                                <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-3">
-                                    {opinion}
+                            {(post.content || (sharedArticle && !post.content)) && ( // Render p tag if there's content, or if it's a shared post without an opinion
+                                <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                    {post.content}
                                 </p>
                             )}
-                            {sharedArticle && (
+
+                            {sharedArticle ? (
                                 <div
                                     onClick={handleSharedArticleClick}
                                     role="button"
@@ -340,9 +321,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSharedArticleClick(); }}
                                     className="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden block group hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-red-500"
                                 >
-                                    {post.imageUrl && (
+                                    {sharedArticle.imageUrl && (
                                         <div className="w-full h-40 bg-gray-200 dark:bg-gray-900">
-                                            <img src={post.imageUrl} alt={sharedArticle.headline} className="w-full h-full object-cover" />
+                                            <img src={sharedArticle.imageUrl} alt={sharedArticle.headline} className="w-full h-full object-cover" />
                                         </div>
                                     )}
                                     <div className="p-4">
@@ -350,14 +331,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{sharedArticle.summary}</p>
                                     </div>
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-                                {post.content}
-                            </p>
-                            {post.imageUrl && (
+                            ) : post.imageUrl && ( // Regular image post
                                 <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                                     <img src={post.imageUrl} alt="Post image" className="w-full max-h-[500px] object-cover" />
                                 </div>

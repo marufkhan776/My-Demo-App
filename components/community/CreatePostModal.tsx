@@ -60,7 +60,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ currentUser, u
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!content.trim()) {
+        if (!content.trim() && !imagePreview) { // Allow image-only posts
             setError('পোস্ট খালি হতে পারে না।');
             return;
         }
@@ -69,7 +69,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ currentUser, u
             return;
         }
         setIsLoading(true);
-        communityService.createPost(selectedGroupId, currentUser.id, content, imagePreview || undefined);
+        communityService.createPost(selectedGroupId, currentUser.id, content, { imageUrl: imagePreview || undefined });
         onPostCreated();
         setIsLoading(false);
     };

@@ -384,14 +384,20 @@ export const communityService = {
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     },
 
-    createPost(groupId: string, authorId: string, content: string, imageUrl?: string): Post {
+    createPost(
+        groupId: string,
+        authorId: string,
+        content: string,
+        options?: { imageUrl?: string; sharedArticleId?: string }
+    ): Post {
         const posts = getFromStorage<Post[]>(POSTS_KEY, []);
         const newPost: Post = {
             id: `post_${Date.now()}`,
             groupId,
             authorId,
             content,
-            imageUrl,
+            imageUrl: options?.imageUrl,
+            sharedArticleId: options?.sharedArticleId,
             timestamp: new Date().toISOString(),
             comments: [],
             likeUserIds: []

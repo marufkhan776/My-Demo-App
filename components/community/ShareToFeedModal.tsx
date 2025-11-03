@@ -49,11 +49,12 @@ export const ShareToFeedModal: React.FC<ShareToFeedModalProps> = ({ article, cur
         }
         setIsLoading(true);
 
-        // Include article ID for linking back from the feed
-        const sharedArticleContent = `\n---\n${article.id}\n**${article.headline}**\n*${article.summary}*`;
-        const finalContent = opinion.trim() ? `${opinion.trim()}${sharedArticleContent}` : sharedArticleContent.trim();
-        
-        communityService.createPost(selectedGroupId, currentUser.id, finalContent, article.imageUrl);
+        const postOptions = {
+            imageUrl: article.imageUrl,
+            sharedArticleId: article.id,
+        };
+
+        communityService.createPost(selectedGroupId, currentUser.id, opinion.trim(), postOptions);
         
         setIsLoading(false);
         onPostCreated();

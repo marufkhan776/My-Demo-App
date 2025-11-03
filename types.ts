@@ -62,6 +62,7 @@ export interface Post {
     timestamp: string;
     comments: Comment[];
     likeUserIds: string[];
+    sharedArticleId?: string; // ID of a shared news article
 }
 
 export interface Group {
