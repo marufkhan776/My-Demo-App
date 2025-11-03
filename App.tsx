@@ -106,6 +106,7 @@ const App: React.FC = () => {
     const handleSelectCategory = (category: Category) => {
         setSearchQuery('');
         setActiveCategory(category);
+        setHasMore(true); // Reset hasMore for the new category
         navigateTo('#/');
     };
     
@@ -123,7 +124,7 @@ const App: React.FC = () => {
         navigateTo('#/');
     };
 
-    const handleLoadMore = async () => {
+    const handleLoadMore = useCallback(async () => {
         if (isLoadingMore) return;
         setIsLoadingMore(true);
         setError(null);
@@ -142,7 +143,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoadingMore(false);
         }
-    };
+    }, [activeCategory, isLoadingMore]);
     
     const handleSelectArticle = (article: Article) => setSelectedArticle(article);
     const handleCloseArticleModal = () => setSelectedArticle(null);
@@ -177,6 +178,31 @@ const App: React.FC = () => {
     useEffect(() => {
         initializeApp();
     }, [initializeApp]);
+
+    useEffect(() => {
+        // Automatically load news when a category is selected and it has no articles yet.
+        const articlesForCategory = articles.filter(article => {
+            const articleCategory = article.category?.trim().toLowerCase();
+            const activeCategoryLower = activeCategory.trim().toLowerCase();
+            if (!articleCategory) return false;
+
+            if (articleCategory === activeCategoryLower) {
+                return true;
+            }
+
+            const mainCategory = CATEGORIES_STRUCTURED.find(c => c.name.trim().toLowerCase() === activeCategoryLower);
+            if (mainCategory?.subcategories) {
+                return mainCategory.subcategories.some(sub => sub.trim().toLowerCase() === articleCategory);
+            }
+
+            return false;
+        });
+
+        if (articlesForCategory.length === 0 && activeCategory !== 'সব খবর' && hasMore && !isLoadingMore) {
+            handleLoadMore();
+        }
+    }, [activeCategory, articles, hasMore, handleLoadMore, isLoadingMore]);
+
 
     const handleAdminLogin = () => {
         setIsAdminLoggedIn(true);
@@ -286,7 +312,22 @@ const App: React.FC = () => {
               )
             : activeCategory === 'সব খবর'
                 ? articles
-                : articles.filter(a => a.category === activeCategory || CATEGORIES_STRUCTURED.find(c => c.name === activeCategory)?.subcategories?.includes(a.category));
+                : articles.filter(article => {
+                    const articleCategory = article.category?.trim().toLowerCase();
+                    const activeCategoryLower = activeCategory.trim().toLowerCase();
+                    if (!articleCategory) return false;
+
+                    if (articleCategory === activeCategoryLower) {
+                        return true;
+                    }
+
+                    const mainCategory = CATEGORIES_STRUCTURED.find(c => c.name.trim().toLowerCase() === activeCategoryLower);
+                    if (mainCategory?.subcategories) {
+                        return mainCategory.subcategories.some(sub => sub.trim().toLowerCase() === articleCategory);
+                    }
+
+                    return false;
+                });
 
         const topStory = articlesToDisplay.length > 0 ? articlesToDisplay[0] : null;
         const remainingStories = articlesToDisplay.slice(1);
@@ -300,7 +341,8 @@ const App: React.FC = () => {
                     </div>
                 )}
                 {error && <ErrorDisplay message={error} onRetry={handleLoadMore} />}
-                {articlesToDisplay.length > 0 ? (
+                
+                {articlesToDisplay.length > 0 && (
                     <>
                         {topStory && <HeroSection article={topStory} onReadMore={() => handleSelectArticle(topStory)} onToggleBookmark={handleToggleBookmark} currentUser={currentUser} />}
                         <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -308,18 +350,27 @@ const App: React.FC = () => {
                                 <NewsCard key={article.id} article={article} onSelectArticle={() => handleSelectArticle(article)} onToggleBookmark={handleToggleBookmark} currentUser={currentUser}/>
                             ))}
                         </div>
-                        {hasMore && !searchQuery && (
-                            <div className="mt-12 text-center">
-                                <button onClick={handleLoadMore} disabled={isLoadingMore} className="bg-red-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-red-700 transition duration-300 disabled:bg-red-400 disabled:cursor-not-allowed">
-                                    {isLoadingMore ? 'লোড হচ্ছে...' : 'আরও খবর লোড করুন'}
-                                </button>
-                            </div>
-                        )}
                     </>
-                ) : (
-                    <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                        <h2 className="text-2xl font-semibold">কোনো খবর পাওয়া যায়নি।</h2>
-                        <p className="mt-2">{searchQuery ? 'আপনার অনুসন্ধানের সাথে মেলে এমন কোনো ফলাফল নেই।' : 'অন্য একটি বিভাগ চেষ্টা করুন।'}</p>
+                )}
+
+                {/* Loading/Empty State */}
+                {articlesToDisplay.length === 0 && !error && (
+                    isLoadingMore ? (
+                        <LoadingSpinner />
+                    ) : (
+                        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
+                            <h2 className="text-2xl font-semibold">কোনো খবর পাওয়া যায়নি।</h2>
+                            <p className="mt-2">{searchQuery ? 'আপনার অনুসন্ধানের সাথে মেলে এমন কোনো ফলাফল নেই।' : 'এই বিভাগে কোনো খবর খুঁজে পাওয়া যায়নি।'}</p>
+                        </div>
+                    )
+                )}
+                
+                {/* Load More Button */}
+                {hasMore && !searchQuery && articlesToDisplay.length > 0 && (
+                    <div className="mt-12 text-center">
+                        <button onClick={handleLoadMore} disabled={isLoadingMore} className="bg-red-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-red-700 transition duration-300 disabled:bg-red-400 disabled:cursor-not-allowed">
+                            {isLoadingMore ? 'লোড হচ্ছে...' : 'আরও খবর লোড করুন'}
+                        </button>
                     </div>
                 )}
             </main>
