@@ -1,14 +1,40 @@
 import React from 'react';
-import { Article } from '../types';
+import { Article, CommunityUser } from '../types';
 
 interface HeroSectionProps {
     article: Article;
     onReadMore: () => void;
+    onToggleBookmark: (articleId: string) => void;
+    currentUser: CommunityUser | null;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ article, onReadMore }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ article, onReadMore, onToggleBookmark, currentUser }) => {
+    const isBookmarked = currentUser?.bookmarkedArticleIds?.includes(article.id) ?? false;
+    
+    const handleBookmarkClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onToggleBookmark(article.id);
+    };
+
     return (
-        <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gradient-to-br from-gray-800 to-gray-900/90 border border-transparent dark:border-gray-700 p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+        <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gradient-to-br from-gray-800 to-gray-900/90 border border-transparent dark:border-gray-700 p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 relative">
+            {currentUser && (
+                <button 
+                    onClick={handleBookmarkClick} 
+                    aria-label={isBookmarked ? "Remove from Read Later" : "Add to Read Later"}
+                    className="absolute top-4 right-4 z-10 p-2 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors"
+                >
+                    {isBookmarked ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.125L5 18V4z" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                    )}
+                </button>
+            )}
             <div className="w-full h-64 md:h-96 rounded-lg overflow-hidden">
                 <img src={article.imageUrl} alt={article.headline} className="w-full h-full object-cover" />
             </div>

@@ -26,6 +26,7 @@ import { FeedView } from './components/community/FeedView';
 import { ProfileView } from './components/community/ProfileView';
 import { NotificationPanel } from './components/notifications/NotificationPanel';
 import { FriendRequestPanel } from './components/community/FriendRequestPanel';
+import { ReadLaterView } from './components/community/ReadLaterView';
 
 const App: React.FC = () => {
     // Admin State
@@ -188,6 +189,18 @@ const App: React.FC = () => {
         navigateTo('#/');
     };
 
+    // --- Read Later / Bookmark Logic ---
+    const handleToggleBookmark = (articleId: string) => {
+        if (!currentUser) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+        const updatedUser = communityService.toggleBookmark(currentUser.id, articleId);
+        if (updatedUser) {
+            setCurrentUser(updatedUser);
+        }
+    };
+
     // --- Notification & Friend Request Logic ---
     const refreshUnreadCounts = useCallback(() => {
         if (currentUser) {
@@ -255,6 +268,10 @@ const App: React.FC = () => {
         if (route.startsWith('#/feed')) {
             return <FeedView currentUser={currentUser} onLoginClick={() => setIsAuthModalOpen(true)} onNavigate={navigateTo} onSelectArticle={handleSelectArticle} />;
         }
+        
+        if (route.startsWith('#/read-later')) {
+            return <ReadLaterView currentUser={currentUser} onLoginClick={() => setIsAuthModalOpen(true)} onSelectArticle={handleSelectArticle} onToggleBookmark={handleToggleBookmark} />;
+        }
 
         if (route.startsWith('#/community')) {
             return <GroupsView currentUser={currentUser} onLoginClick={() => setIsAuthModalOpen(true)} onNavigate={navigateTo} />;
@@ -285,10 +302,10 @@ const App: React.FC = () => {
                 {error && <ErrorDisplay message={error} onRetry={handleLoadMore} />}
                 {articlesToDisplay.length > 0 ? (
                     <>
-                        {topStory && <HeroSection article={topStory} onReadMore={() => handleSelectArticle(topStory)} />}
+                        {topStory && <HeroSection article={topStory} onReadMore={() => handleSelectArticle(topStory)} onToggleBookmark={handleToggleBookmark} currentUser={currentUser} />}
                         <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {remainingStories.map((article) => (
-                                <NewsCard key={article.id} article={article} onSelectArticle={() => handleSelectArticle(article)} />
+                                <NewsCard key={article.id} article={article} onSelectArticle={() => handleSelectArticle(article)} onToggleBookmark={handleToggleBookmark} currentUser={currentUser}/>
                             ))}
                         </div>
                         {hasMore && !searchQuery && (
@@ -378,6 +395,7 @@ const App: React.FC = () => {
                 onSelectArticle={handleSelectArticle}
                 currentUser={currentUser}
                 onLoginClick={() => setIsAuthModalOpen(true)}
+                onToggleBookmark={handleToggleBookmark}
             />}
             {selectedPolicy && <PolicyModal policy={POLICY_CONTENT[selectedPolicy]} onClose={handleClosePolicy} />}
             {isAuthModalOpen && <UserAuthModal onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleUserLogin} />}

@@ -47,7 +47,8 @@ const initDefaultData = () => {
             createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
             bio: 'সর্বশেষ খবর এবং গঠনমূলক আলোচনায় আগ্রহী। বাংলা সংবাদ কমিউনিটির একজন সক্রিয় সদস্য।',
             coverPhoto: 'https://source.unsplash.com/1600x900/?bangladesh,landscape',
-            friendIds: ['user_2']
+            friendIds: ['user_2'],
+            bookmarkedArticleIds: [],
         };
          const anotherUser: CommunityUser = {
             id: 'user_2',
@@ -57,7 +58,8 @@ const initDefaultData = () => {
             createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
             bio: 'খেলাধুলা এবং প্রযুক্তি আমার আগ্রহের বিষয়। নতুন মানুষের সাথে পরিচিত হতে ভালোবাসি।',
             coverPhoto: 'https://source.unsplash.com/1600x900/?tech,abstract',
-            friendIds: ['user_1']
+            friendIds: ['user_1'],
+            bookmarkedArticleIds: [],
         };
         const thirdUser: CommunityUser = {
             id: 'user_3',
@@ -67,7 +69,8 @@ const initDefaultData = () => {
             createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(), // 1 day ago
             bio: 'আন্তর্জাতিক রাজনীতি এবং অর্থনীতি নিয়ে আলোচনা করতে পছন্দ করি।',
             coverPhoto: 'https://source.unsplash.com/1600x900/?city,night',
-            friendIds: []
+            friendIds: [],
+            bookmarkedArticleIds: [],
         };
         const aiUser: CommunityUser = {
             id: 'user_ai',
@@ -78,6 +81,7 @@ const initDefaultData = () => {
             bio: 'আমি একটি বন্ধুত্বপূর্ণ এআই সহকারী, এখানে সাহায্য করার জন্য আছি!',
             coverPhoto: 'https://source.unsplash.com/1600x900/?abstract,network',
             friendIds: [],
+            bookmarkedArticleIds: [],
         };
         users = [defaultUser, anotherUser, thirdUser, aiUser];
         saveToStorage(USERS_KEY, users);
@@ -118,8 +122,12 @@ const initDefaultData = () => {
             }
         }
     } else {
-        // Migration for existing users who might not have the friendIds property
-        const migratedUsers = users.map(u => ({ ...u, friendIds: u.friendIds || [] }));
+        // Migration for existing users who might not have the new properties
+        const migratedUsers = users.map(u => ({ 
+            ...u, 
+            friendIds: u.friendIds || [],
+            bookmarkedArticleIds: u.bookmarkedArticleIds || [],
+        }));
         saveToStorage(USERS_KEY, migratedUsers);
 
         // --- Migration to add AI to all existing groups ---
@@ -152,6 +160,7 @@ export const communityService = {
             profilePicture: `https://i.pravatar.cc/150?u=${`user_${Date.now()}`}`,
             createdAt: new Date().toISOString(),
             friendIds: [],
+            bookmarkedArticleIds: [],
         };
         users.push(newUser);
         saveToStorage(USERS_KEY, users);
@@ -221,6 +230,32 @@ export const communityService = {
         });
 
         return { totalLikes, totalComments };
+    },
+
+    // --- Bookmark Management ---
+    toggleBookmark(userId: string, articleId: string): CommunityUser | null {
+        const users = getFromStorage<CommunityUser[]>(USERS_KEY, []);
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) return null;
+
+        const user = users[userIndex];
+        user.bookmarkedArticleIds = user.bookmarkedArticleIds || [];
+
+        const articleIndex = user.bookmarkedArticleIds.indexOf(articleId);
+        if (articleIndex > -1) {
+            user.bookmarkedArticleIds.splice(articleIndex, 1); // Remove if exists
+        } else {
+            user.bookmarkedArticleIds.push(articleId); // Add if not
+        }
+
+        users[userIndex] = user;
+        saveToStorage(USERS_KEY, users);
+
+        const currentUser = this.getCurrentUser();
+        if (currentUser && currentUser.id === userId) {
+            saveToStorage(CURRENT_USER_KEY, user);
+        }
+        return user;
     },
 
     // --- Friend Management ---

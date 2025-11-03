@@ -11,6 +11,7 @@ interface ArticleModalProps {
     onSelectArticle: (article: Article) => void;
     currentUser: CommunityUser | null;
     onLoginClick: () => void;
+    onToggleBookmark: (articleId: string) => void;
 }
 
 const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; children: React.ReactNode }> = ({ onClick, 'aria-label': ariaLabel, children }) => (
@@ -23,10 +24,11 @@ const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; c
     </button>
 );
 
-export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles, onClose, onSelectArticle, currentUser, onLoginClick }) => {
+export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles, onClose, onSelectArticle, currentUser, onLoginClick, onToggleBookmark }) => {
     const [copied, setCopied] = useState(false);
     const [isShareToFeedModalOpen, setIsShareToFeedModalOpen] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
+    const isBookmarked = currentUser?.bookmarkedArticleIds?.includes(article.id) ?? false;
 
     useEffect(() => {
         const handleEscapeKey = (event: KeyboardEvent) => {
@@ -109,7 +111,21 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
                             <span>{article.publishedDate}</span>
                         </div>
                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                            <span className="font-semibold text-gray-600 dark:text-gray-300">শেয়ার করুন:</span>
+                            {currentUser && (
+                                <button
+                                    onClick={() => onToggleBookmark(article.id)}
+                                    aria-label={isBookmarked ? "Saved for later" : "Save for later"}
+                                    className={`flex items-center gap-2 font-semibold transition-colors duration-200 ${isBookmarked ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'}`}
+                                >
+                                    {isBookmarked ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.125L5 18V4z" /></svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                                    )}
+                                    <span>{isBookmarked ? 'সংরক্ষিত' : 'পরে পড়ুন'}</span>
+                                </button>
+                            )}
+                            <span className="font-semibold text-gray-600 dark:text-gray-300 border-l border-gray-300 dark:border-gray-600 pl-4">শেয়ার করুন:</span>
                             <div className="flex items-center space-x-4">
                                 <SocialShareButton onClick={() => handleShare('facebook')} aria-label="Share on Facebook">
                                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>

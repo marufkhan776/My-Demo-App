@@ -177,6 +177,7 @@ export const Header: React.FC<HeaderProps> = ({
                                             <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">স্বাগতম, <strong>{currentUser.username}</strong></div>
                                             <div className="border-t border-gray-200 dark:border-gray-700"></div>
                                             <button onClick={() => { onNavigate(`#/profile/${currentUser.id}`); setIsProfileMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">আমার প্রোফাইল</button>
+                                            <button onClick={() => { onNavigate('#/read-later'); setIsProfileMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">পড়া তালিকা</button>
                                             <div className="border-t border-gray-200 dark:border-gray-700"></div>
                                             <button onClick={onLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">লগআউট</button>
                                         </div>

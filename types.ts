@@ -43,6 +43,7 @@ export interface CommunityUser {
     bio?: string;
     coverPhoto?: string;
     friendIds: string[];
+    bookmarkedArticleIds?: string[]; // IDs of articles saved for later
 }
 
 export interface Comment {
