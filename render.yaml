@@ -1,0 +1,31 @@
+
+# This file configures the deployment on Render.com
+# For more details, see https://render.com/docs/yaml-spec
+services:
+  - type: web # Use a web service for flexibility with build commands
+    name: bangla-news-portal
+    plan: free # Use the 'free' tier for this demo project
+    runtime: node # A Node.js environment is needed for 'serve'
+    
+    # The build command is run on every deploy.
+    # It installs a static file server and injects the API key into the source code.
+    buildCommand: |
+      npm install -g serve
+      # Check if GEMINI_API_KEY is set to prevent errors
+      if [ -z "$GEMINI_API_KEY" ]; then
+        echo "Error: GEMINI_API_KEY environment variable is not set."
+        exit 1
+      fi
+      # Use a different delimiter for sed to avoid issues with special characters in the API key
+      sed -i "s|__GEMINI_API_KEY__|${GEMINI_API_KEY}|g" services/newsService.ts
+      
+    # The start command runs the static server.
+    # '-s' serves the content as a single-page application.
+    startCommand: "serve -s ."
+    
+    # Define environment variables.
+    # The GEMINI_API_KEY should be set as a "Secret File" or environment variable
+    # in the Render dashboard for this service.
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false # Set to false for secrets to avoid exposing them in build logs
