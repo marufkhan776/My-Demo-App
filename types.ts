@@ -100,3 +100,14 @@ export interface Notification {
     timestamp: string; // ISO date string
     isRead: boolean;
 }
+
+// News Comment Feature Types
+export interface NewsComment {
+    id: string;
+    articleId: string;
+    authorId: string;
+    content: string;
+    timestamp: string;
+    parentId: string | null; // For threaded replies
+    likeUserIds: string[];
+}

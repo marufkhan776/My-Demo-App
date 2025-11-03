@@ -298,7 +298,14 @@ const App: React.FC = () => {
                         </div>
                     )}
                 </main>
-                {selectedArticle && <ArticleModal article={selectedArticle} allArticles={articles} onClose={handleCloseArticleModal} onSelectArticle={handleSelectArticle} />}
+                {selectedArticle && <ArticleModal 
+                    article={selectedArticle} 
+                    allArticles={articles} 
+                    onClose={handleCloseArticleModal} 
+                    onSelectArticle={handleSelectArticle} 
+                    currentUser={currentUser}
+                    onLoginClick={() => setIsAuthModalOpen(true)}
+                />}
             </>
         );
     };

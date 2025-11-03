@@ -1,12 +1,15 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Article } from '../types';
+import { Article, CommunityUser } from '../types';
+import { CommentSection } from './comments/CommentSection';
 
 interface ArticleModalProps {
     article: Article;
     allArticles: Article[];
     onClose: () => void;
     onSelectArticle: (article: Article) => void;
+    currentUser: CommunityUser | null;
+    onLoginClick: () => void;
 }
 
 const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; children: React.ReactNode }> = ({ onClick, 'aria-label': ariaLabel, children }) => (
@@ -19,7 +22,7 @@ const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; c
     </button>
 );
 
-export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles, onClose, onSelectArticle }) => {
+export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles, onClose, onSelectArticle, currentUser, onLoginClick }) => {
     const [copied, setCopied] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +157,14 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
                             </div>
                         </div>
                     )}
+                    
+                    <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+                        <CommentSection 
+                            articleId={article.id}
+                            currentUser={currentUser}
+                            onLoginClick={onLoginClick}
+                        />
+                    </div>
                 </div>
                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 text-right">
                     <button onClick={onClose} className="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300">
