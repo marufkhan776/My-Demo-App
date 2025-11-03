@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Article, CommunityUser } from '../types';
 import { CommentSection } from './comments/CommentSection';
 import { ShareToFeedModal } from './community/ShareToFeedModal';
@@ -29,8 +29,23 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
     const [isShareToFeedModalOpen, setIsShareToFeedModalOpen] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
     const isBookmarked = currentUser?.bookmarkedArticleIds?.includes(article.id) ?? false;
+    const [scrollProgress, setScrollProgress] = useState(0);
+
+    const handleScroll = useCallback(() => {
+        if (modalContentRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = modalContentRef.current;
+            const scrollableHeight = scrollHeight - clientHeight;
+            if (scrollableHeight > 0) {
+                const progress = (scrollTop / scrollableHeight) * 100;
+                setScrollProgress(progress);
+            } else {
+                setScrollProgress(100); // Content is not scrollable, show as 100%
+            }
+        }
+    }, []);
 
     useEffect(() => {
+        const currentModalContent = modalContentRef.current;
         const handleEscapeKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 onClose();
@@ -38,19 +53,24 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
         };
         document.addEventListener('keydown', handleEscapeKey);
         document.body.style.overflow = 'hidden';
+        currentModalContent?.addEventListener('scroll', handleScroll);
         
         return () => {
             document.removeEventListener('keydown', handleEscapeKey);
             document.body.style.overflow = 'auto';
+            currentModalContent?.removeEventListener('scroll', handleScroll);
         };
-    }, [onClose]);
+    }, [onClose, handleScroll]);
 
     useEffect(() => {
-        // Scroll to top when article changes
+        // Scroll to top and reset progress when article changes
         if (modalContentRef.current) {
             modalContentRef.current.scrollTop = 0;
+            setScrollProgress(0);
+            // Recalculate progress for new content after DOM update
+            setTimeout(handleScroll, 50); 
         }
-    }, [article]);
+    }, [article, handleScroll]);
 
     const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) {
@@ -101,6 +121,20 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{article.headline}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-800 dark:text-gray-500 dark:hover:text-gray-200 transition text-3xl">&times;</button>
                 </div>
+                
+                {/* Reading Progress Bar */}
+                <div className="w-full bg-gray-200 dark:bg-gray-700 h-1 flex-shrink-0">
+                    <div 
+                        className="bg-red-600 h-1 transition-all duration-100 ease-linear" 
+                        style={{ width: `${scrollProgress}%` }}
+                        role="progressbar"
+                        aria-label="Reading progress"
+                        aria-valuenow={Math.round(scrollProgress)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                    ></div>
+                </div>
+
                 <div className="p-6 overflow-y-auto" ref={modalContentRef}>
                     <div className="w-full h-96 rounded-lg overflow-hidden mb-6">
                          <img src={article.imageUrl} alt={article.headline} className="w-full h-full object-cover" />
